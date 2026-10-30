@@ -43,6 +43,9 @@ html,body{margin:0;height:100%;background:#1c1a2e;font-family:"Zen Maru Gothic",
 @keyframes shake{20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-8px)}80%{transform:translateX(8px)}}
 @keyframes happy{50%{transform:rotate(6deg) translateY(-10px)}}
 #hud{position:absolute;top:calc(env(safe-area-inset-top) + 10px);left:10px;right:10px;display:flex;justify-content:space-between;align-items:center;pointer-events:none}
+.hg{display:inline-block;position:relative;width:70px;height:9px;background:#e8dfe6;border-radius:5px;margin:0 8px;vertical-align:middle;overflow:visible}.hg i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#ff9ec0,#ff4f86);transition:width .5s}.hg b{position:absolute;top:-2px;width:2px;height:13px;background:#9a7a8c;opacity:.6}.hg.full{animation:glow 1s infinite alternate}@keyframes glow{to{box-shadow:0 0 8px #ff4f86}}.dy{font-size:calc(12px*var(--u));color:#8a6a7c}
+.pop{position:absolute;left:14px;top:46px;z-index:9;font-weight:900;color:#ff3d7a;font-size:calc(22px*var(--u));text-shadow:0 2px 0 #fff;pointer-events:none;animation:popup 1.1s forwards}@keyframes popup{0%{opacity:0;transform:translateY(8px) scale(.6)}20%{opacity:1;transform:translateY(0) scale(1.2)}100%{opacity:0;transform:translateY(-22px)}}
+#sEnd .bu{position:absolute;bottom:-30px;pointer-events:none;animation:bu 3.2s ease-out forwards;opacity:0}@keyframes bu{0%{opacity:0;transform:translateY(0) scale(.5)}15%{opacity:1}100%{opacity:0;transform:translateY(-520px) scale(1.4) rotate(20deg)}}
 #hearts{background:rgba(255,255,255,.85);border-radius:999px;padding:calc(4px*var(--u)) calc(12px*var(--u));font-size:calc(14px*var(--u));font-weight:700;pointer-events:auto}
 
 #sMenu{z-index:30;background:rgba(40,32,70,.82)}
@@ -235,7 +238,7 @@ for(var _c in IMGSX){IMGSX[_c].forEach(function(u){IMGS[_c].push(u)})}
 var XP={red:{happy:[4],droop:[5]},yellow:{happy:[4,5],jump:[5],n:[6]},blue:{n:[4],droop:[5,6]},green:{happy:[4],droop:[5]},purple:{droop:[4,6],n:[5]},pink:{happy:[4,5],shake:[6,8],droop:[7]},rainbow:{happy:[4],shake:[5],n:[6]}};
 var LOG=[], READ={}, skipOn=false, skipT=null, readDirty=0;
 var SPD=1, TY=[60,34,14,0], SPN=["ゆっくり","ふつう","はやい","いっしゅん"], bgmOn=true, wantBgm="neutral", lastBg="neutral", lastPose=0, curNode=null, menuMode="", titleArm=false;
-var G="f", F={}, strikes=0, P="お主", pts=0, queue=[], busy=false, typing=null, fullText="", soundOn=true, ac=null, CUR=null;
+var day=1, G="f", F={}, strikes=0, P="お主", pts=0, queue=[], busy=false, typing=null, fullText="", soundOn=true, ac=null, CUR=null;
 var seen={}; try{seen=JSON.parse(localStorage.getItem("bonGalgeEnds")||"{}")}catch(e){}
 
 function saveSeen(k){seen[k]=1;try{localStorage.setItem("bonGalgeEnds",JSON.stringify(seen))}catch(e){}}
@@ -313,7 +316,9 @@ function fx(k){
   var xl=XP[CUR.id]&&XP[CUR.id][k||"n"]; if(xl&&xl.length&&IMGSX[CUR.id]&&Math.random()<.6)i=xl[Math.floor(Math.random()*xl.length)];
   setPose(i);
 }
-function hearts(){$("hearts").textContent="♡ "+pts}
+function hearts(){
+  var e=$("hearts"),mx=CUR?CUR.love:10,pc=Math.max(0,Math.min(100,pts/mx*100)),fr=CUR?Math.min(100,CUR.friend/mx*100):50;
+  e.innerHTML='<span class="hn">♡ '+pts+'</span><span class="hg'+(CUR&&pts>=CUR.love?" full":"")+'"><i style="width:'+pc+'%"></i><b style="left:'+fr+'%"></b></span><span class="dy">'+day+'日目</span>'}
 function toast(t){var e=$("toast");e.textContent=t;e.classList.remove("go");void e.offsetWidth;e.classList.add("go")}
 function sub(s){
   s=s.replace(/\{p\}ちゃん/g,P+(G==="m"?"くん":"ちゃん"));
@@ -380,10 +385,10 @@ function showChoices(n){
     var b=document.createElement("button"); b.textContent=sub(o.label);
     b.onclick=function(){
       box.classList.remove("show"); busy=false; sfx(o.pts>=2?"great":(o.pts===1?"good":(o.pts===0?"meh":"bad")));
-      pts+=o.pts; hearts();
+      pts+=o.pts; day++; hearts(); if(o.pts>0){var pp=document.createElement("div");pp.className="pop";pp.textContent="♡+"+o.pts;$("app").appendChild(pp);setTimeout(function(){pp.remove()},1200)}
       if(o.flag)F[o.flag]=1;
       strikes+=o.pts<0?2:(o.pts===0?1:0);
-      toast(o.pts>=2?"♡♡ UP!":(o.pts===1?"♡ UP!":(o.pts<0?"💢 DOWN…":"…")));
+      toast(o.pts>=2?"♡♡ UP!!":(o.pts===1?"♡ UP!":(o.pts<0?"💢 DOWN…":"…")));
       var add=[{t:"say",who:"p",text:"「"+o.label+"」"}].concat(o.res);
       var more=queue.some(function(x){return x.t==="choice"});
       if(CUR.leaveNodes&&strikes>=CUR.leaveAt&&more){queue=add.concat(CUR.leaveNodes,[{t:"end",key:"leave"}])}
@@ -398,7 +403,15 @@ function showChoices(n){
 function ending(key){
   setSkip(false); saveRead();
   var c=CUR, k=key||(pts>=c.love?((F.A&&F.B&&c.ends.special)?"special":"love"):(pts>=c.friend?"friend":"sad"));
+  if(!key&&(k==="love"||k==="special")){
+    var cf=CONF[c.id];
+    queue=[N("ゆうぐれの帰り道。ふたりの足が、ふっと止まった。",{bg:"clear",sprite:true}),S(cf.ask,{fx:"happy"}),
+      C(O("「好きです。つきあってください！」",1,[S(cf.yes,{fx:"jump"}),{t:"end",key:k}]),
+        O("「……今のままが、いちばん心地いいから」",1,[N("ふたりは顔を見合わせて、ちいさく笑った。この距離も、きっと大切な宝物。"),{t:"end",key:"friend"}]))];
+    step(); return;
+  }
   var e=c.ends[k];
+  if(k==="love"||k==="special"){for(var bi=0;bi<26;bi++){var bh=document.createElement("span");bh.className="bu";bh.textContent=["♥","♡","✿","✦"][bi%4];bh.style.left=(Math.random()*100)+"%";bh.style.fontSize=(16+Math.random()*26)+"px";bh.style.color=["#ff6b9a","#ffb3cf","#ff9ec0","#ffd166"][bi%4];bh.style.animationDelay=(Math.random()*1.6)+"s";$("sEnd").appendChild(bh);(function(x){setTimeout(function(){x.remove()},5200)})(bh)}}
   saveSeen(c.id+"_"+k); showCount(); buildCards();
   bgmStop(); sfx(k); setTimeout(function(){if(!$("sEnd").classList.contains("show"))return;bgmSet("neutral")},3200);
   $("win").classList.remove("show"); $("sprite").classList.remove("show");
@@ -790,7 +803,7 @@ function routeBlue(){
     s("あのね。ボン、ね。……{p}のこと、すき、かもしれない。"),
     s("……あわわ。いま、言っちゃった……。",{fx:"shake"}),
     C(
-      O("ぼくも、ひょえボンが好きだよ",2,[s("ほんとう……？ ボンのこと、こわくない……？",{fx:null}),s("……うれしい。うれしいのに、胸がどきどきして、こわい。……これは、いいどきどきだ。",{fx:"happy"})]),
+      O("{ぼく|わたし}も、ひょえボンが好きだよ",2,[s("ほんとう……？ ボンのこと、こわくない……？",{fx:null}),s("……うれしい。うれしいのに、胸がどきどきして、こわい。……これは、いいどきどきだ。",{fx:"happy"})]),
       O("ずっとそばにいるよ",2,[s("ずっと……？ ずっと、って、どのくらい？",{fx:null}),s("……雨がやむまでより、ずーっと長い？ ……じゃあ、安心。",{fx:"happy"})]),
       O("大丈夫、なにも怖くないよ",0,[s("……それは、うそだよう。",{fx:"droop"}),s("{p}のこと、こわくはないけど……ぜんぶ、ちゃんと聞いてほしかった。")])
     ),
@@ -857,7 +870,7 @@ function routeGreen(){
     s("だからな……{p}しゃんは、うちにとって、いちばん特別な人やと思う。",{fx:"happy"}),
     s("……返事は、食べ物でたとえてくれると、うれしいな。もぐ。"),
     C(
-      O("君は、僕の一番好きなお赤飯だよ",2,[s("ボーン！！",{fx:"jump"}),s("お赤飯……！ うち、世界一幸せなお赤飯や！ ありがとう、ありがとう！",{fx:"happy"})]),
+      O("{君|あなた}は、{僕|わたし}の一番好きなお赤飯だよ",2,[s("ボーン！！",{fx:"jump"}),s("お赤飯……！ うち、世界一幸せなお赤飯や！ ありがとう、ありがとう！",{fx:"happy"})]),
       O("ずっと一緒にごはんを食べたい",2,[s("それは……プロポーズより、うれしい言葉やよ！",{fx:"jump"}),s("毎朝、毎晩、うちが作る。{p}しゃんの好きなもの、ぜんぶ！",{fx:"happy"})]),
       O("焼きそばパンみたいに、安心する",0,[s("焼きそばパン……！？ おいしいけど、そこは、せめて、おにぎりやろ！",{fx:"shake"}),s("ええけど！ 焼きそばパンも、うち、好きやから！ もぐ。")])
     ),
@@ -924,7 +937,7 @@ function routePurple(){
     s("……{p}のこと、すき。……いっしょに寝ても、いいって思う、ひとだから。"),
     s("……きみの、返事は。",{fx:null}),
     C(
-      O("ぼくも、ねむボンが大好き",2,[s("……ほんと。",{fx:null}),s("……うれしくて、ねむれ……る。……zzz。",{fx:null,pose:2}),N("ねむボンは、告白の返事を聞いて安心して、そのまま寝てしまった。")]),
+      O("{ぼく|わたし}も、ねむボンが大好き",2,[s("……ほんと。",{fx:null}),s("……うれしくて、ねむれ……る。……zzz。",{fx:null,pose:2}),N("ねむボンは、告白の返事を聞いて安心して、そのまま寝てしまった。")]),
       O("ずっとそばで眠らせてあげる",2,[s("……ずっと……？",{fx:null}),s("……ずっと、は、夢でも見ない、ぐらい、あんしん……zzz。",{fx:null,pose:2})]),
       O("ねえ、起きて、真剣な話だよ",0,[s("……起こさないでって……。",{fx:"shake",pose:0}),s("……でも、真剣なら、起きる。……だから、もう一回、言って。……zzz。",{fx:"droop",pose:2})])
     ),
@@ -1058,7 +1071,7 @@ red:function(){return {
        O("ソース、ぜんぶこぼれてるよ",-1,[s("こぼしてない！！ これは……『演出』よ！",{fx:"shake"}),s("指摘するのは、あたしがソースをふいてからにしなさいよ！ 空気読みなさい！",{fx:"shake"})])],
     2:[O("「勝ったら、お願いをひとつ聞いて」と賭ける",1,[s("賭け……？ あたしに賭けを挑むなんて、百年早いのよ！",{fx:"jump"}),s("いいわ、乗ってあげる。……ただし、負けても泣かないでよね！",{fx:null})]),
        O("じゃんけんの判定に異議を唱える",-1,[s("異議、ですって？",{fx:"shake"}),s("審判はあたしよ！ 判定は絶対！ ……なによ、その顔は！",{fx:"shake"})])],
-    3:[O("賞状の隣に、ぼくの絵も飾っていい？",1,[s("は、はあっ！？ あたしの賞状の隣に、あんたの絵を……！？",{fx:"shake"}),s("……いい、けど。ちゃんとした額に入れなさいよね。傾いてたら、直すから。",{fx:"happy"})]),
+    3:[O("賞状の隣に、{ぼく|わたし}の絵も飾っていい？",1,[s("は、はあっ！？ あたしの賞状の隣に、あんたの絵を……！？",{fx:"shake"}),s("……いい、けど。ちゃんとした額に入れなさいよね。傾いてたら、直すから。",{fx:"happy"})]),
        O("勝手に本棚を整理しはじめる",-1,[s("ちょっと！ 触らないで！！",{fx:"shake"}),s("その順番には、意味があるの！ 背の順、色の順、読んだ日の順なの！ ……ぜんぶ戻して！",{fx:"shake"})])],
     4:[O("きみに負けたいから、毎日勝負しにくるよ",2,[s("…………はぁ？",{fx:null}),s("負けたい、って……なにそれ。あんた、変よ。ほんとに変。",{fx:"shake"}),s("……でも、毎日来るなら、朝ごはん、作っておいてあげても、いいわよ。",{fx:"happy"})]),
        O("ほかの子とも遊ぶ約束があるんだ",0,[s("……そう。",{fx:"droop"}),s("べ、別に、いいんじゃない。好きにすれば！ ……あたしは、ひとりでも、勝負できるし。",{fx:"shake"})])],
@@ -1131,10 +1144,10 @@ purple:function(){return {
   add:{
     0:[O("大声で「起きて！」と叫ぶ",-1,[s("…………！",{fx:"shake"}),s("……うるさい。……ねむ、い。……おこ、らないで。……いや、おこってる。",{fx:"droop"})])],
     1:[O("ミルクにはちみつを少しだけ足す",2,[s("……ん。……いい、におい。",{fx:"happy"}),s("……はちみつ。……ぼく、すき。……どうして、わかった。")])],
-    2:[O("その夢、ぼくも見てみたい",1,[s("……いっしょに、見る？ ……ふたりで、ねたら、見られる、かも。",{fx:"happy"}),s("……そんな、気が、する。")])],
+    2:[O("その夢、{ぼく|わたし}も見てみたい",1,[s("……いっしょに、見る？ ……ふたりで、ねたら、見られる、かも。",{fx:"happy"}),s("……そんな、気が、する。")])],
     3:[O("いたずらで、ほっぺをつつく",-1,[s("……ん……っ。……やめ、て。",{fx:"droop"}),s("……いま、いい、ところ、だった。……ゆめ。……もどれない。")])],
     4:[O("ふたりで、このまま二度寝しよう",2,[s("……にどね。……いい、ことば。",{fx:"happy"}),s("……じゃあ、おやすみ。……朝の、つづき。")])],
-    5:[O("……ぼくも、ちょっと眠くなってきた",0,[s("……そう。……いっしょ、だね。",{fx:null}),s("……でも、いま、おはなし、してる。……ねないで。……ねても、いいけど。")])]
+    5:[O("……{ぼく|わたし}も、ちょっと眠くなってきた",0,[s("……そう。……いっしょ、だね。",{fx:null}),s("……でも、いま、おはなし、してる。……ねないで。……ねても、いいけど。")])]
   },
   flags:[[1,3,"A"],[4,3,"B"]],
   br:{
@@ -1193,9 +1206,9 @@ rainbow:function(){return {
     3:[O("物語を、いっしょに書こうよ",2,[S("な……なんと！？",{fx:"jump"}),S("共著、ということか！ 我輩、いまだかつて、誰かと原稿を分け合ったことがなくてな……！",{fx:"jump"}),S("……よかろう。ただし、締め切りは厳守である！",{fx:"happy"})]),
        O("芸術って、むずかしくてよくわからない",0,[S("わからぬ、か……。",{fx:null}),S("わからぬものを、わからぬと言えるのは、勇気である。……だが、少し寂しいぞ。",{fx:"droop"})]),
        O("芸術より、デザートが好きかな",-1,[S("デ、デザート……！？",{fx:"shake"}),S("我輩のペロペロキャンディ論より、デザートが上であると申すか！ 聞き捨てならぬ！",{fx:"shake"})])],
-    4:[O("ぼくのひみつも、教えるね",2,[S("ひ、ひみつ、だと！？",{fx:"jump"}),S("交換条件か！ よかろう、我輩の耳を貸そう。ひそひそ話は、両者が出し合ってこそ成立するのだ！",{fx:"happy"})]),
+    4:[O("{ぼく|わたし}のひみつも、教えるね",2,[S("ひ、ひみつ、だと！？",{fx:"jump"}),S("交換条件か！ よかろう、我輩の耳を貸そう。ひそひそ話は、両者が出し合ってこそ成立するのだ！",{fx:"happy"})]),
        O("そろそろ帰ろうか",0,[S("む……。もう、そんな時刻か。",{fx:null}),S("ひそひそ話は、いつも、いいところで終わるものである。しょボン…",{fx:"droop"})]),
-       O("その噂、ぼくはおこボンから聞いたよ",-1,[S("お、おこボンから、だと……！？",{fx:"shake"}),S("我輩の情報網を、すでに突破されておったとは！ ……いや、それよりも、なぜお主が、おこボンと親しいのだ！",{fx:"shake"})])],
+       O("その噂、{ぼく|わたし}はおこボンから聞いたよ",-1,[S("お、おこボンから、だと……！？",{fx:"shake"}),S("我輩の情報網を、すでに突破されておったとは！ ……いや、それよりも、なぜお主が、おこボンと親しいのだ！",{fx:"shake"})])],
     5:[O("石は、レインボンちゃんの目の色に似てるね",2,[S("我輩の瞳……？",{fx:null}),S("ふ、ふむ。そのような見方をした者は、お主が初めてである。……悪くない。いや、とても悪くないぞ！",{fx:"happy"})]),
        O("海に投げて、願いごとをする",0,[S("な、投げる……！？ この宝を……！？",{fx:"shake"}),S("いや、待て。願いごととは、手放すことで叶うもの……。……くっ、哲学的である！",{fx:"droop"})]),
        O("ほかの子のおみやげにしよう",-1,[S("ほか、の、子……？",{fx:"droop"}),S("我輩と半分こにするはずの宝を、ほかの者に……？ ……いや、よい。我輩は、大人である。しょボン……",{fx:"droop"})])],
@@ -1257,6 +1270,61 @@ var CHARS=[
   fx:{n:0,h:1,j:1,s:3,d:0},ends:ENDS.rainbow,ask:"お主の名前を教えるのだ！\n(8もじまで)",wide:true}
 ];
 
+CHARS.forEach(function(c){c.love+=3;c.friend+=3});
+var CONF={
+red:{ask:"……あのさ。言いたいことがあるなら、さっさと言いなさいよ。聞いてあげるから。",yes:"ば、ばかっ……！ そんなの、あたしだって……とっくに、好きだったんだからっ！"},
+yellow:{ask:"なになにー？ 今日はなんだか、{p}のこと、ずーっと見ちゃうんだよね。",yes:"えっ……！ ……うんっ！ うんうんうんっ！ だいすきっ！ だいすきだよーっ！"},
+blue:{ask:"あ、あのっ……{p}、なにか言いたそう……？ ど、どきどきするよぉ……",yes:"ひょえ……！？ ……ほ、ほんとに……？ うれしくて、涙が……止まらないよぉ……！ ……はいっ……！"},
+green:{ask:"{p}、さっきからそわそわしとるやん。なんか言いたいことあるん？",yes:"…………うちも、ずっと好きやった。……うんっ、よろしくお願いします！"},
+purple:{ask:"……ん……{p}……ねむくないの……？ ……なにか、言いたそう……",yes:"……ん……ゆめじゃ、ない……？ ……すき……。……ずっと、いっしょに……ねむろ……"},
+pink:{ask:"あ、あの……そんなに、見つめられると……っ。……は、はい……聞きます……",yes:"は、はいっ……！ ……わ、わたしも……ずっと、ずっと……好きでしたっ……！"},
+rainbow:{ask:"ふむ。お主の顔に、言葉が書いてあるぞ。我輩に、聞かせてみよ。",yes:"……ふっ。我輩の人生で、最高の一行を貰ったぞ。……よろしく頼む。我が愛しき人よ。"}};
+var DATE={
+red:{f:[2,"わっ、屋台！ やきそば、りんご飴、たこ焼き……あんたにしては、センスいいじゃない！"],s:[1,"海ぃ？ ……ま、風は気持ちいいけど。砂が靴に入るのだけは許さないわよ。"],l:[0,"図書館？ 静かにしなきゃいけないとこでしょ！ ……あたしが黙ってられると思うわけ？ ほら、追い出された！"],p:[1,"ピクニック？ ……おにぎり、作ってきたんでしょうね。まあ、芝生は悪くないわ。"],
+ a:[2,"ジェットコースター！ ほら、乗るわよ！ ……叫ぶのは、あんたの方なんだからね！"],c:[1,"喫茶店……ま、パフェくらいなら付き合ってあげる。ちょっと、一口ちょうだいよ。"],h:[0,"星？ ……ずっと上を見てると、首が痛くなるのよ。寒いし、もう帰る！"],o:[1,"温泉街で足湯ね。……ふぅ、悪くない。べ、別にくつろいでなんかないわよ！"]},
+yellow:{s:[2,"うみーっ！ 波とおいかけっこしよっ！ ほら、はやくはやくーっ！"],f:[1,"おまつり！ ……でも人がいっぱいで、はぐれちゃうかも。手、つないでもいい？"],l:[0,"としょかん……？ しーっ、って言われるの、にがてなんだよねぇ……ぽわぁ……"],p:[1,"ピクニック！ ごろごろして、おにぎり食べて、雲の形あてっこしよーっ！"],
+ a:[2,"ゆうえんちー！ ぜんぶのりもの、はしごしよっ！ ほら、はやくはやくーっ！"],c:[1,"喫茶店！ ポテト……あるかな？ あっ、あった！ ここのポテト、さいこうー！"],h:[1,"わぁ……ほしがいっぱい。いつもさわがしいのに、今だけは、しーんとしちゃうね。"],o:[0,"おんせん……あつすぎて、のぼせちゃうよぉ……くらくら〜……"]},
+blue:{s:[2,"うみ……人が少なくて、すてき……。波の音、ひょえ〜って、ちょっとだけ好きかも……。"],l:[1,"と、図書館……静かで落ち着く……。でも、ページをめくる音にもびくっとしちゃう……。"],f:[0,"ひょえぇぇ！？ 人がいっぱい！ 太鼓の音が！ む、むりむりむりぃぃ……！"],p:[1,"ピクニック……芝生の上なら、ころんでも痛くないよね……。……あ、虫……！ ひょえっ！"],
+ h:[2,"星空……静かで、こわくない……。{p}が隣にいてくれるから、星が、少しだけ近く見える……。"],c:[1,"喫茶店……あたたかい……。ココアを両手で包むと、ほっとするね……。"],a:[0,"ひょえぇぇ！？ ジェットコースター！？ む、むりむりむりぃぃ！ ……か、観覧車なら……あ、高いぃ……！"],o:[1,"温泉……ひろい湯船は、ちょっとこわいけど……足湯なら、ぽかぽか……。"]},
+green:{f:[2,"屋台やーっ！ たこ焼き、焼きそば、わたあめ！ 全部制覇するんよ！ ほら、{p}も食べて食べて！"],s:[1,"海やぁ……！ お弁当持ってくればよかったなぁ。……あ、海の家に焼きとうもろこしあるやん！"],l:[0,"図書館……？ おなかの音、響いちゃうんよ……。ぐぅ〜。……し、しーっ、聞こえとるよ！"],p:[2,"ピクニック！？ お弁当、いっぱい作ってきたんよ！ から揚げに、卵焼きに、おにぎりに……全部食べてもええんよ！"],
+ c:[2,"喫茶店！ ナポリタン、プリン・ア・ラ・モード、ホットケーキ……ぜーんぶ頼もう！ ……お財布は大丈夫？"],a:[1,"遊園地やぁ……！ ポップコーンにチュロス、食べ歩きもたのしみなんよ！ 乗り物は……ほどほどでええよ。"],o:[1,"温泉街かぁ。温泉まんじゅうに、温泉卵……食べ歩きやね！ ほかほかしてええ気分やぁ。"],h:[0,"星空……？ きれいやけど……おなか、すいてきたよぉ……。ぐぅ〜。"]},
+purple:{s:[2,"……波の音……いい……。……ここで、ねる……。……{p}の肩、かりる……すやぁ……"],l:[1,"……図書館……しずか……。……ほんの上で、ちょっとだけ……ぐぅ。"],f:[0,"……うるさい……。……ねむれない……。……かえりたい……。"],p:[2,"……ピクニック……芝生で、ひなたぼっこ……。……すやぁ。……ひざまくら、かりる……。"],
+ o:[2,"……温泉……ほかほか……。……ここで、一生ねたい……。……すや……"],h:[1,"……ほし……。……ねむりながら、みる……ゆめみたい……。……すぅ……"],c:[1,"……喫茶店……ふかふかの椅子……。……あたたかいミルク……ねむい……。"],a:[0,"……ジェットコースター……こわい……ねむれない……。……かえる……。"]},
+pink:{l:[2,"あ、あの……静かな場所、すき、です……。……同じ本に手がふれて、ど、どきっ……なんて……っ！"],s:[1,"うみ……夕やけがきれい……。……あ、あの、横にいても、いいですか……？"],f:[0,"わわっ、人が……！ ひ、ひとごみは……は、はずかしくて……っ！ ……か、帰りたい……"],p:[2,"ぴ、ピクニック……！？ お、お弁当、作ってきました……！ ……ふ、不格好ですけど……食べて、くれますか……？"],
+ h:[2,"ほ、星空……ロマンチック……ですね……。……ねえ、あの星、{p}みたい……なんて、い、言っちゃった……！"],c:[1,"あ、あの……窓際のお席で、ふ、ふたりで……ケーキ、はんぶんこ……しませんか……？"],a:[1,"ゆ、遊園地……！ お化け屋敷……だけは……む、むりです……！ ……し、しがみついちゃうから……っ！"],o:[0,"温泉街……ゆ、湯けむりで前が見えなくて……こ、転んじゃった……いたた……"]},
+rainbow:{l:[2,"ほう、図書館とは気が利くな。静けさの中で言葉に浸る……これぞ文豪の嗜みよ。"],s:[1,"ふむ、海か。寄せては返す波は、詩の韻律に似ておる。……悪くない。"],f:[1,"祭りか。賑わいも、創作の糧となろう。……ほれ、我輩にも、りんご飴を一つ買うがよい。"],p:[0,"ピクニックか。……蟻や虫が原稿に集るのが気に食わぬ。我輩、屋内の方が筆が進むのだ。"],
+ c:[2,"喫茶店か。ふむ、コーヒーの香りに筆が踊る。ここは文豪のホームグラウンドよ。"],h:[1,"星空か。……万葉の歌人も、この空を見上げたのであろうな。"],o:[1,"温泉街とは。湯治で名を残した文豪も数多い。我輩も一句、ひねってみようか。"],a:[0,"遊園地……だと？ 回る乗り物は、筆の運びを乱す。……我輩、酔いそうだ。"]}};
+var PLACE={f:"🏮 夏祭りの屋台へ",s:"🌊 夕ぐれの海辺へ",l:"📚 しずかな図書館へ",p:"🧺 公園でピクニック",a:"🎡 遊園地へ",c:"☕ 喫茶店へ",h:"🌌 星空の丘へ",o:"♨ 温泉街の足湯へ"};
+function dateBlock(c,keys,intro){
+  var d=DATE[c.id];
+  var opts=keys.map(function(k){return O(PLACE[k],d[k][0],[S(d[k][1],{fx:d[k][0]>=2?"happy":(d[k][0]===0?"droop":"")})])});
+  return [N(intro,{bg:"clear",sprite:true}),S("ねえ、今日はどこに行く？ {p}が決めていいよ！"),C.apply(null,opts)];
+}
+var DATE3={
+red:[["🌶 激辛ラーメンの店へ",3,["激辛！？ ……ふんっ、望むところよ。あたしを誰だと思ってんの！ 大盛り、辛さMAXでっ！","〜〜っっ！ か、からっ……！ み、水……！ ……ふふ、でも、完食したわよ。あんたも、よく付き合ったわね。","ねえ。……汗かいてる顔、ちょっと、かっこよかったわよ。……ば、ばかっ、なんでもないわ！"]],["🥞 おしゃれなカフェへ",1,["おしゃれ……あたしには似合わないでしょ。……でも、ふわふわパンケーキは、悪くないわ。"]],["🎬 恋愛映画を観に行く",0,["恋愛映画ぁ！？ ……こ、こんなの、見られるわけないでしょ！ ……ほ、ほら、ポップコーンでも食べて黙ってなさいよ！"]]],
+yellow:[["🎮 ゲームセンターへ",3,["ゲームセンター！ ダンスゲーム、勝負しよっ！ ……あっ、プリクラもあるよ！ いっしょに撮ろっ！","ぎゅーっとくっついて、ピース！ ……わっ、距離ちかっ！ でも、これがいちばんいい顔になるんだよ！","できたー！ ……このプリクラ、宝物にするね。ずっとずっと、さいしょのページにはっておくんだ！"]],["🍟 ポテト食べ放題の店へ",1,["ポテト食べ放題！ ……もちろん大好きだけど、{p}と話すのを忘れて、食べすぎちゃった……えへへ。"]],["🖼 美術館へ",0,["びじゅつかん……？ ぜんぶ見ちゃだめ、さわっちゃだめ……うずうず……あっ、しまったぁ！ 怒られちゃったぁ！"]]],
+blue:[["🐰 ふれあい動物広場へ",3,["うさぎさん……！ ふわふわ……ちっちゃい……。……こわくない、こわくない……ひょえっ、手に乗った……！","……ふふ。あったかい。ドキドキが、ゆっくりになる……。{p}が、そばにいるおかげかな……。","あの……ありがとう。{p}といると、こわいことが、少しずつ、やさしくなるの……。"]],["🐠 雨の日の水族館へ",1,["水族館……暗くて、青くて、きれい……。……でも、ほら、雨の音が……ひょえ……ごろごろは、ない、よね……？"]],["👻 お化け屋敷へ",0,["ひょえぇぇぇぇぇ！！？ お、お化け屋敷！？ むりむりむりむりぃぃ！ ……き、気絶する……ぱたり……。"]]],
+green:[["🍙 おにぎり作り体験へ",3,["おにぎり作り体験！？ うちの得意分野やん！ まかせて、ふわっと、きゅっ、が秘訣なんよ！","ほら、{p}のぶんも握ったよ。具は、うちの気持ち、たっぷり入れといたから。……あーん。","もぐ……ね、おいしい？ ……えへへ、うれしい。うち、{p}におにぎり握るの、一生続けたいなぁ。"]],["🐟 水族館へ",1,["水族館かぁ。……あ、あのお魚、おいしそうやなぁ……って、見ちゃダメやね！ ごめんなさい！"]],["🧘 ヨガ教室へ",0,["ヨガ……？ おなかをへこませて、って……うち、そんなん無理やぁ……ぐぅぅ〜。……し、静かにして、おなかぁ！"]]],
+purple:[["🌠 プラネタリウムへ",3,["……リクライニング、ふかふか……。……天井に、星……。……すぅ……ねむ……。","……ん……あ、{p}の手……あったかい……。……星より、こっちの方が……すき……。","……ふふ……おやすみ……。……あしたも、あさっても……いっしょに、ねむろ……。"]],["🎬 映画館へ",1,["……映画……暗い……ふかふか……。……すやぁ……あ、エンドロール……もう終わり……？"]],["🏃 朝のジョギングへ",0,["……ジョギング……？ ……朝……早すぎる……。……あし……うごかない……。……ぱたり。"]]],
+pink:[["📖 古本屋の詩集コーナーへ",3,["あ、あの、ここ……わたしの、いちばん好きな場所……。……この詩集、ずっと探してて……あっ、手が……っ！","……ふふ。……ね、一節だけ……読んでも、いいですか。……「ふたりの影が、ひとつに重なる、夕ぐれ」……","……な、なんて。……こ、この詩……わたしが、書いたんです。……{p}のこと、考えながら……っ！"]],["🌸 花畑へ",1,["お花畑……きれい……。……あ、あの……花の名前、ぜんぶ、知ってるんです……。……で、でも、{p}の方が、きれい……なんて……っ。"]],["🎤 カラオケへ",0,["か、カラオケ……！？ ひ、人前で歌うなんて……む、むりです……！ ……マイクが震える……ぷるぷる……"]]],
+rainbow:[["📚 文豪ゆかりの古書街へ",3,["ほう……古書街か。我輩の庭に、よくぞ連れて参った！ ここの紙の匂いは、何物にも代えがたい。","見よ、この初版本。……ほれ、お主も触れてみるがよい。物語が、指先から流れ込んでくるぞ。","……ふっ。お主と歩く古書街は、格別だ。……我輩の次の物語は、お主が主人公と決まった。覚悟せよ。"]],["🎸 ライブハウスへ",1,["ライブか。ふむ、音の洪水。……悪くない。創作の刺激にはなるな。……耳は、少々痛むが。"]],["🛍 ショッピングモールへ",0,["人混みと広告の洪水……。我輩の筆が、涙を流しておるわ。……早く出よう。頼むから、出よう。"]]]};
+function dateBlock3(c){
+  var d=DATE3[c.id];
+  var opts=d.map(function(x){return O(x[0],x[1],x[2].map(function(l,i){return S(l,{fx:x[1]>=3?"happy":(x[1]===0?"droop":"")})}))});
+  return [N("そして、いよいよ最後のおやすみの日。{p}の特別な場所へ、行ってみることにした。",{bg:"clear",sprite:true}),S("ねえ……{p}と行ってみたいところが、あるんだ。どこだと思う？"),C.apply(null,opts)];
+}
+function addDate(q,c){
+  if(!DATE[c.id])return q;
+  var idx=[];q.forEach(function(n,i){if(n.t==="choice")idx.push(i)});
+  if(idx.length<4)return q;
+  var a2=idx[Math.floor(idx.length*3/4)], a1=idx[Math.floor(idx.length/2)];
+  if(a1===a2)return q;
+  var a3=idx[Math.floor(idx.length*7/8)];
+  if(a3>a2&&DATE3[c.id])Array.prototype.splice.apply(q,[a3,0].concat(dateBlock3(c)));
+  Array.prototype.splice.apply(q,[a2,0].concat(dateBlock(c,["a","c","h","o"],"またおやすみの日がきた。今度は{p}がプランを立てる番らしい。")));
+  Array.prototype.splice.apply(q,[a1,0].concat(dateBlock(c,["f","s","l","p"],"おやすみの日。{p}が、「どこかへ出かけない？」と声をかけてきた。")));
+  return q;
+}
 function decorate(q,c){
   var mk=EXTRA[c.id]; if(!mk)return q;
   var X=mk();
@@ -1313,10 +1381,10 @@ function setGender(g){
   for(var i=0;i<bs.length;i++)bs[i].onclick=function(){setGender(this.getAttribute("data-g"));beep(700,.06)};})();
 
 function start(){
-  pts=0; hearts();
+  pts=0; day=1; hearts();
   $("sEnd").classList.remove("show");
   setPose(0);
-  F={}; strikes=0; LOG=[]; queue=decorate(CUR.script(),CUR); busy=false;
+  F={}; strikes=0; day=1; LOG=[]; queue=addDate(decorate(CUR.script(),CUR),CUR); hearts(); busy=false;
   $("win").classList.remove("show"); $("choices").classList.remove("show");
   step();
 }
@@ -1391,7 +1459,7 @@ function buildSlots(){
 }
 function doSave(n){
   if(!inPlay()){return}
-  var s={id:CUR.id,P:P,G:G,pts:pts,strikes:strikes,F:F,bg:lastBg,pose:lastPose,spr:$("sprite").classList.contains("show"),node:curNode,queue:queue,leave:CUR.leaveNodes||null,leaveAt:CUR.leaveAt||99,log:LOG.slice(-150),t:Date.now()};
+  var s={day:day,id:CUR.id,P:P,G:G,pts:pts,strikes:strikes,F:F,bg:lastBg,pose:lastPose,spr:$("sprite").classList.contains("show"),node:curNode,queue:queue,leave:CUR.leaveNodes||null,leaveAt:CUR.leaveAt||99,log:LOG.slice(-150),t:Date.now()};
   var ok=false; try{ok=lsSet(SKEY+n,JSON.stringify(s))}catch(e){}
   $("menuMsg").textContent=ok?"スロット"+n+"にセーブしたよ！":"このブラウザではセーブできないみたい…";
   if(ok){beep(880,.1);buildSlots();refreshCont()}
@@ -1401,7 +1469,7 @@ function doLoad(n){
   var c=null; if(s)for(var i=0;i<CHARS.length;i++)if(CHARS[i].id===s.id)c=CHARS[i];
   if(!c||!s.node){$("menuMsg").textContent="ロードできなかった…";return}
   if(typing){clearInterval(typing);typing=null}
-  setSkip(false); LOG=s.log||[]; CUR=c; P=s.P; G=s.G==="m"?"m":"f"; pts=s.pts; strikes=s.strikes||0; F=s.F||{};
+  setSkip(false); LOG=s.log||[]; CUR=c; P=s.P; G=s.G==="m"?"m":"f"; pts=s.pts; day=s.day||1; strikes=s.strikes||0; F=s.F||{};
   c.leaveNodes=s.leave||null; c.leaveAt=s.leaveAt||99;
   $("app").style.setProperty("--acc",c.acc); $("app").style.setProperty("--accfg",c.fg); applyFont(c);
   hideScreens();
