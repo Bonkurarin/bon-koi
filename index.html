@@ -86,6 +86,27 @@ html,body{margin:0;height:100%;background:#1c1a2e;font-family:"Zen Maru Gothic",
 #sTitle #endCount{margin:0;font-size:calc(12px*var(--u));color:#7a3b5b}
 @media (prefers-reduced-motion:reduce){#tpet i,#tlogo .th,#sTitle #btnStart{animation:none}}
 #titleBtns{display:flex;gap:calc(10px*var(--u));flex-wrap:wrap;justify-content:center}
+#btnTok{position:absolute;left:12px;top:calc(env(safe-area-inset-top) + 12px);z-index:5;background:none;border:0;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:calc(1px*var(--u));font:700 10px sans-serif;color:#c93e6b}
+#btnTok svg{width:42px;height:42px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.3))}
+#btnTok .dot{position:absolute;right:-4px;top:-4px;min-width:18px;height:18px;border-radius:9px;background:#ff2d55;color:#fff;font-size:calc(11px*var(--u));line-height:18px;text-align:center;padding:0 calc(4px*var(--u));display:none}
+#sTok{justify-content:flex-start;overflow-y:auto;padding-top:calc(env(safe-area-inset-top) + 14px);gap:calc(10px*var(--u));background:#0b0b10}
+#tokHead{display:flex;align-items:center;gap:calc(10px*var(--u));width:100%;max-width:440px}
+#tokHead svg{width:38px;height:38px}
+#tokHead b{font-size:calc(22px*var(--u));letter-spacing:1px;text-shadow:2px 2px 0 #25f4ee,-2px -2px 0 #fe2c55}
+#tokHead small{margin-left:auto;font-size:calc(12px*var(--u));opacity:.8}
+#tokList{width:100%;max-width:440px;display:flex;flex-direction:column;gap:calc(10px*var(--u));text-align:left}
+.tp{background:#1a1a22;border-radius:14px;padding:calc(12px*var(--u)) calc(14px*var(--u));display:flex;flex-direction:column;gap:calc(6px*var(--u));border:1px solid #2c2c38}
+.tp.lock{opacity:.55}
+.tp .who{display:flex;align-items:center;gap:calc(8px*var(--u));font-size:calc(13px*var(--u))}
+.tp .who img{width:34px;height:34px;border-radius:50%;background:#fff;object-fit:cover;object-position:top;border:2px solid #fe2c55}
+.tp .who i{font-style:normal;opacity:.6;font-size:calc(11px*var(--u))}
+.tp .tx{font-size:calc(14px*var(--u));line-height:1.7}
+.tp .tg{display:flex;flex-wrap:wrap;gap:calc(6px*var(--u));font-size:calc(12px*var(--u))}
+.tp .tg span{color:#25f4ee}
+.tp .ft{display:flex;gap:calc(14px*var(--u));font-size:calc(12px*var(--u));opacity:.75}
+.tp .rp{background:#262633;border-radius:10px;padding:calc(7px*var(--u)) calc(10px*var(--u));font-size:calc(13px*var(--u));border-left:3px solid #fe2c55}
+.tp .rp b{font-size:calc(12px*var(--u));opacity:.8}
+.tp.new{border-color:#fe2c55}
 #sGallery{justify-content:flex-start;overflow-y:auto;padding-top:calc(env(safe-area-inset-top) + 18px);gap:calc(10px*var(--u))}
 #sGallery h2{margin:0;font-size:calc(22px*var(--u))}
 #galList{width:min(380px,100%);display:flex;flex-direction:column;gap:calc(10px*var(--u));text-align:left}
@@ -179,6 +200,7 @@ html,body{margin:0;height:100%;background:#1c1a2e;font-family:"Zen Maru Gothic",
     <div id="titleRow" role="group" aria-label="ボンのしょうかい"></div>
     <div id="introCard" aria-live="polite"><div id="introName"></div><div id="introBody"><p id="titleLine"></p></div></div>
     <button class="btn" id="btnStart">♥ はじめる</button>
+    <button id="btnTok" aria-label="BonTok"><span class="dot" id="tokDot"></span><span id="tokIco"></span>BonTok</button>
     <div id="titleBtns"><button class="btn sub" id="btnCont">つづきから</button><button class="btn sub" id="btnGal">エンディング一覧</button><button class="btn sub" id="btnSet">せってい</button></div>
     <p id="endCount"></p>
   </div>
@@ -213,6 +235,11 @@ html,body{margin:0;height:100%;background:#1c1a2e;font-family:"Zen Maru Gothic",
     <h2>会話ログ</h2>
     <div id="logList" tabindex="0" role="log"></div>
     <button class="btn sub" id="logClose">とじる</button>
+  </div>
+  <div class="screen" id="sTok">
+    <div id="tokHead"><span id="tokIco2"></span><b>BonTok</b><small id="tokCount"></small></div>
+    <div id="tokList"></div>
+    <button class="btn sub" id="tokBack">もどる</button>
   </div>
   <div class="screen" id="sGallery">
     <h2>エンディング一覧</h2>
@@ -412,7 +439,7 @@ function ending(key){
   }
   var e=c.ends[k];
   if(k==="love"||k==="special"){for(var bi=0;bi<26;bi++){var bh=document.createElement("span");bh.className="bu";bh.textContent=["♥","♡","✿","✦"][bi%4];bh.style.left=(Math.random()*100)+"%";bh.style.fontSize=(16+Math.random()*26)+"px";bh.style.color=["#ff6b9a","#ffb3cf","#ff9ec0","#ffd166"][bi%4];bh.style.animationDelay=(Math.random()*1.6)+"s";$("sEnd").appendChild(bh);(function(x){setTimeout(function(){x.remove()},5200)})(bh)}}
-  saveSeen(c.id+"_"+k); showCount(); buildCards();
+  saveSeen(c.id+"_"+k); showCount(); buildCards(); tokBadge();
   bgmStop(); sfx(k); setTimeout(function(){if(!$("sEnd").classList.contains("show"))return;bgmSet("neutral")},3200);
   $("win").classList.remove("show"); $("sprite").classList.remove("show");
   $("endTitle").textContent=e.title; $("endText").innerHTML=sub(e.text).replace(/\n/g,"<br>");
@@ -1505,6 +1532,85 @@ function buildGallery(){
     d.appendChild(row); box.appendChild(d);
   });
 }
+
+/* ---------- BonTok (レインボンちゃんのつぶやき) ---------- */
+function tokIcon(){var d="M17 7v12.2a3.6 3.6 0 1 1-3.6-3.6M17 7c.4 3 2.4 4.6 5.8 4.9";
+  return '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#111"/><g fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="'+d+'" stroke="#25f4ee" transform="translate(-1.2,-1.2)"/><path d="'+d+'" stroke="#fe2c55" transform="translate(1.2,1.2)"/><path d="'+d+'" stroke="#fff"/></g></svg>'}
+var TOKT=[
+{id:"f1",u:function(){return true},h:"",x:"【本日の我輩】恋とは、胸の内に虹を架ける作業である。架けるのは己、渡るのは相手。……む、今のは名言として記録しておくがよい。",g:["ボン♥こい","自作名言"]},
+{id:"f2",u:function(){return true},h:"",x:"新入りがやって来た。名を問うと、ひらがな五文字までと申す。ボンは長い文を覚えられぬのだ。我輩の名が長いのは、そのせいではない。",g:["名前は5文字まで","BonTok初投稿"]},
+{id:"f3",u:function(){return true},h:"",x:"ボンの口説き方、其の一。相手の好物を知れ。其の二、相手の苦手を知れ。其の三、……我輩も知らぬ。",g:["恋愛指南","ボン♥こい"]},
+{id:"f4",u:function(){return true},h:"",x:"お主ら、選択肢の前で長考しても構わぬが、冷めた味噌汁は元に戻らぬぞ。恋もまた、鮮度が命である。",g:["名言","ボン♥こい"]},
+{id:"f5",u:function(){return true},h:"",x:"BonTokとは何かと問われた。短い物語を、短く載せる場所だ。長くなる者は我輩のことであるが。",g:["BonTok","文豪の短文"]}];
+var OBS={red:["おこボン","頬をふくらませる速度、日々上昇中。先日は賞状を額に入れておった。怒りの数だけ、勝負の数がある。","ちょっと！ 勝手に載せないでよ！"],
+yellow:["にこボン","出会って三秒で友になる才。我輩は三日かかった。ポテトを分け与える際の笑顔は、国宝に値する。","えへへ、ポテトあげるよっ！"],
+blue:["ひょえボン","雷の日は三日前から怯えておる。だが、怖がりながらも前へ進む足を、人は勇気と呼ぶ。","あわわ……ほめられた……？"],
+green:["もぐボン","朝から晩まで、何かを食しておる。されど、食べる者の幸福そうな顔こそ、世界の平和の最小単位であろう。","もぐもぐ……ありがとなんよ！"],
+purple:["ねむボン","歩きながら寝る達人。夢の中の我輩は、なぜかいつもミルクを運んでおるらしい。どういう役回りか。","……すやぁ……"],
+pink:["てれボン","頬の赤みは、その日の勇気の目盛りである。物陰で詩を綴るその筆致、我輩は嫌いではない。","み、見てたんですかぁ……っ！"],
+rainbow:["レインボン","我輩を書く者がおる。書かれる側に回ると、背中がむず痒い。が、悪くない。",""]};
+var WIN={red:"おこボンが、本日、人生で最も赤い頬を披露した。相手には「ばか」と告げたそうだ。これは「大好き」の同義語である。",
+yellow:"にこボンの笑顔が、いつもの三割増しで眩しかった。ポテトを二人で分けておった。……我輩の分はなかった。",
+blue:"ひょえボンが、雷の音を聞いても逃げなんだ。隣に誰かがおれば、世界は少しだけ優しくなる。記録しておこう。",
+green:"もぐボンが、おにぎりを一つ、誰かに渡しておった。食いしん坊が分け与えるとは、これぞ最上級の愛の言葉である。",
+purple:"ねむボンが、起きたまま、誰かの話を最後まで聞いておった。……奇跡である。夢でなければ、だが。",
+pink:"てれボンの詩集に、新しい一篇が増えた。題は秘密だそうだが、宛先は一目瞭然である。我輩は黙っておこう。",
+rainbow:"我輩の原稿の主役が、ひとり決まった。……ふふ、これ以上は語らぬ。続きは本編にて。"};
+var LOSE={red:"おこボンが帰った。待たせてはならぬ、からかってはならぬ、勝負は受けるべし。三つ揃えば怒りは虹に変わる。",
+yellow:"にこボンが寂しそうに去った。静寂は、彼女にとって最大の難所である。次は、騒がしく参れ。",
+blue:"ひょえボンが震えて帰った。大声は禁物。まず隣に座り、次に黙れ。これが勇気の作法である。",
+green:"もぐボンの腹が鳴ったまま、会話が終わった。空腹の者に語る愛は、粥より薄い。まず食わせよ。",
+purple:"ねむボンを起こしてしまった者がおる。眠りの邪魔は、夢への不法侵入である。",
+pink:"てれボンが、そっと姿を消した。じっと見つめるばかりが愛ではない。時には、視線を海に流せ。",
+rainbow:"我輩が筆を折る寸前であった。名言を無視されると、文豪は拗ねる。覚えておくがよい。"};
+function hasEnd(id,ks){return ks.some(function(k){return seen[id+"_"+k]})}
+CHARS.forEach(function(c){var o=OBS[c.id];
+  TOKT.push({id:"o_"+c.id,u:function(){return hasEnd(c.id,["love","friend","sad","leave","special"])},h:c.name+"のエンディングを見ると読める",x:"【観察日記】"+o[0]+"。"+o[1],g:[o[0],"観察日記"],r:o[2]?[o[0],o[2]]:null});
+  TOKT.push({id:"w_"+c.id,u:function(){return hasEnd(c.id,["love","special"])},h:c.name+"と結ばれると読める",x:"【祝福】"+WIN[c.id],g:[o[0],"祝福"]});
+  TOKT.push({id:"l_"+c.id,u:function(){return hasEnd(c.id,["leave","sad"])},h:c.name+"に帰られる(または届かない)と読める",x:"【反省会】"+LOSE[c.id],g:[o[0],"反省会"]});
+});
+[[3,"【速報】三つの結末を見届けたか。早いな。恋とは何度でも試せるものよ。",["実績","ボン♥こい"]],[7,"【統計】七つのエンディングに到達。ラッキーセブン、などという言葉は、我輩の時代にもあった気がする。",["七つ","統計"]],[15,"【名言】別れも恋のうち。結末が増えるたび、お主の心の地図も広がる。旅に終わりはない。",["名言","やりこみ"]],[25,"【宣言】我輩、そろそろ原稿を書き上げねば。お主が結末を集める速さに、筆が追いつかぬ。",["執筆中","やりこみ"]],[35,"【祝】全エンディング到達、天晴れ！ お主こそ、真のボン♥こい博士である。我輩の虹を、思う存分、渡るがよい。",["コンプリート","祝"]]].forEach(function(m){
+  TOKT.push({id:"m"+m[0],u:function(){return countSeen()>=m[0]},h:"エンディングを"+m[0]+"個見つけると読める",x:m[1],g:m[2]});});
+[[0,"我輩の台詞は、なぜか選択肢のたびに並びが入れ替わる。作者が申すには「丸暗記で攻略されたくない」らしい。……我輩は暗記される側であるか。",["仕様","メタ発言"],["おこボン","選択肢の位置が毎回違うのはそのせい！？ 聞いてないんだけど！"]],
+[0,"好感度ゲージなる物が画面の隅に出ておる。細い線は「友だち」の目印だそうだ。恋の距離を線で測るなど、文豪には無粋だが、便利ではある。",["好感度ゲージ","メタ発言"],null],
+[0,"お主らが「難易度★」と呼ぶ物、あれは我輩が★5であるという意味らしい。落とすのが難しい者、と書かれておるようで、甚だ不本意である。",["難易度","メタ発言"],null],
+[1,"エンディングは全部で三十五あると聞いた。七人に五つずつ。余った時間で作者は何をしておるのかと問うたら、「デート先を考えている」と言うた。",["エンディング","開発状況"],null],
+[1,"告白の場面は、実は最後にしか出ぬ。最初から出せば簡単であろうと作者に問うたら、「それでは盛り上がらない」と。もっともである。",["告白","メタ発言"],null],
+[3,"デート先の選択肢に、ひとつだけ大当たりがあるらしい。外れを引いても良いのだ。人生も、外れの方が語り草になる。",["デート","大当たり"],["にこボン","ぜんぶ行ってみたいなーっ！"]],
+[3,"セリフ送りを速くする機能があるらしいな。はやい、いっしゅん、とは何事か。名文は味わって読むものである。……が、二周目なら許す。",["仕様","セリフの速さ"],null],
+[3,"お主が男でも女でも、我輩の口調は変わらぬ。変わるのは、お主の呼び名と、少々の照れである。これも仕様である。",["仕様","メタ発言"],null],
+[7,"ログ機能。過去の台詞が読み返せるとは、実に文豪向きの仕掛けである。……我輩の失言も、残るということだが。",["会話ログ","仕様"],null],
+[7,"既読スキップなる機能で、読んだ場面だけ飛ばせるそうだ。名場面を飛ばして何が残る、と思うが、周回には便利であろう。",["既読スキップ","周回"],null],
+[15,"ボンたちの絵は、気分に合わせてポーズが変わるそうだ。同じ台詞でも、顔が違う。我輩の顔が一番多彩であるべきだが、作者に交渉中である。",["立ち絵","メタ発言"],["てれボン","わ、わたしの顔も変わってたんですか……っ！"]],
+[15,"ボンごとに文字の形が違うと気づいたか。我輩は明朝である。文豪ゆえ当然。おこボンは勢いのある字、ひょえボンは震える字……と作者が言うておった。",["フォント","メタ発言"],null],
+[25,"BGMは、場面ごとに切り替わる。恋の山場は華やかになるが、我輩の登場時は特に荘厳であるべきだと進言しておいた。",["BGM","開発状況"],null],
+[25,"開発状況を報告する。台詞、立ち絵、デート、告白、BonTok、ここまで揃った。残るは、お主の感想と、我輩の出番の追加であろう。",["開発状況","メタ発言"],null],
+[35,"ここまで来たお主にだけ明かす。……我輩の「次回作」は、まだ白紙である。何を書くかは、お主の次の一手で決まる。",["次回作","メタ発言"],null]].forEach(function(m,i){
+  TOKT.push({id:"x"+i,u:function(){return countSeen()>=m[0]},h:m[0]?"エンディングを"+m[0]+"個見つけると読める":"",x:"【メタ】"+m[1],g:m[2],r:m[3]});});
+var tokRead={}; try{tokRead=JSON.parse(localStorage.getItem("bonKoiTok")||"{}")}catch(e){}
+function tokUnread(){var n=0;TOKT.forEach(function(p){if(p.u()&&!tokRead[p.id])n++});return n}
+function tokBadge(){var n=tokUnread(),d=$("tokDot");if(!d)return;d.textContent=n;d.style.display=n?"block":"none"}
+function buildTok(){
+  var box=$("tokList");box.innerHTML="";var got=0,nw={};
+  TOKT.forEach(function(p){if(p.u()){got++;if(!tokRead[p.id])nw[p.id]=1}});
+  $("tokCount").textContent="読めた投稿 "+got+" / "+TOKT.length;
+  var list=TOKT.filter(function(p){return p.u()}).reverse().concat(TOKT.filter(function(p){return !p.u()}));
+  list.forEach(function(p){
+    var ok=p.u(),d=document.createElement("div");d.className="tp"+(ok?"":" lock")+(nw[p.id]?" new":"");
+    var w=document.createElement("div");w.className="who";var im=document.createElement("img");im.alt="";im.src=IMGS.rainbow[1];
+    var nm=document.createElement("span");nm.innerHTML="<b>レインボンちゃん</b> <i>@rainbon_bun</i>";w.appendChild(im);w.appendChild(nm);d.appendChild(w);
+    var x=document.createElement("div");x.className="tx";x.textContent=ok?p.x:"🔒 "+p.h;d.appendChild(x);
+    if(ok){var g=document.createElement("div");g.className="tg";p.g.forEach(function(s){var e=document.createElement("span");e.textContent="#"+s;g.appendChild(e)});d.appendChild(g);
+      var h=1+Math.abs(hashStr(p.id))%4000;var f=document.createElement("div");f.className="ft";f.textContent="♥ "+h+"　💬 "+(p.r?1:0)+"　↗ "+(h%97);d.appendChild(f);
+      if(p.r){var r=document.createElement("div");r.className="rp";r.innerHTML="<b></b><div></div>";r.firstChild.textContent=p.r[0]+" がリプライ";r.lastChild.textContent=p.r[1];d.appendChild(r)}}
+    box.appendChild(d)});
+  TOKT.forEach(function(p){if(p.u())tokRead[p.id]=1});try{localStorage.setItem("bonKoiTok",JSON.stringify(tokRead))}catch(e){}
+  tokBadge();
+}
+$("tokIco").innerHTML=tokIcon();$("tokIco2").innerHTML=tokIcon();
+$("btnTok").onclick=function(){beep(700,.06);buildTok();hideScreens();$("sTok").classList.add("show");$("sTok").scrollTop=0};
+$("tokBack").onclick=function(){beep(600,.05);$("sTok").classList.remove("show");$("sTitle").classList.add("show");tokBadge()};
+tokBadge();
 $("btnGal").onclick=function(){beep(660,.06);buildGallery();hideScreens();$("sGallery").classList.add("show")};
 $("galBack").onclick=function(){$("sGallery").classList.remove("show");$("sTitle").classList.add("show")};
 $("btnSet").onclick=function(){beep(660,.06);showMenu("")};
