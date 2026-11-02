@@ -108,6 +108,11 @@ html,body{margin:0;height:100%;background:#1c1a2e;font-family:"Zen Maru Gothic",
 .tp .rp b{font-size:calc(12px*var(--u));opacity:.8}
 .tp.new{border-color:#fe2c55}
 #sGallery{justify-content:flex-start;overflow-y:auto;padding-top:calc(env(safe-area-inset-top) + 18px);gap:calc(10px*var(--u))}
+#sAlbum{justify-content:flex-start;overflow-y:auto;padding-top:calc(env(safe-area-inset-top) + 18px);gap:calc(10px*var(--u))}
+#albList{width:min(380px,100%);display:flex;flex-direction:column;gap:calc(10px*var(--u));text-align:left}
+.alc{background:rgba(255,255,255,.14);border-radius:12px;padding:calc(10px*var(--u)) calc(12px*var(--u));font-size:calc(13px*var(--u));line-height:1.7}
+.alc b{display:block;margin-bottom:4px}
+.alc i{display:block;font-style:normal;opacity:.92}
 #sGallery h2{margin:0;font-size:calc(22px*var(--u))}
 #galList{width:min(380px,100%);display:flex;flex-direction:column;gap:calc(10px*var(--u));text-align:left}
 .gcar{background:rgba(255,255,255,.14);border-radius:14px;padding:calc(8px*var(--u)) calc(10px*var(--u))}
@@ -201,7 +206,7 @@ html,body{margin:0;height:100%;background:#1c1a2e;font-family:"Zen Maru Gothic",
     <div id="introCard" aria-live="polite"><div id="introName"></div><div id="introBody"><p id="titleLine"></p></div></div>
     <button class="btn" id="btnStart">♥ はじめる</button>
     <button id="btnTok" aria-label="BonTok"><span class="dot" id="tokDot"></span><span id="tokIco"></span>BonTok</button>
-    <div id="titleBtns"><button class="btn sub" id="btnCont">つづきから</button><button class="btn sub" id="btnGal">エンディング一覧</button><button class="btn sub" id="btnSet">せってい</button></div>
+    <div id="titleBtns"><button class="btn sub" id="btnCont">つづきから</button><button class="btn sub" id="btnGal">エンディング一覧</button><button class="btn sub" id="btnAlb">思い出アルバム</button><button class="btn sub" id="btnAll" style="display:none">🎉 全員集合</button><button class="btn sub" id="btnSet">せってい</button></div>
     <p id="endCount"></p>
   </div>
   <div class="screen" id="sSelect">
@@ -247,6 +252,17 @@ html,body{margin:0;height:100%;background:#1c1a2e;font-family:"Zen Maru Gothic",
     <div id="galDetail" role="region" aria-live="polite"></div>
     <button class="btn sub" id="galBack">もどる</button>
   </div>
+  <div class="screen" id="sAlbum">
+    <h2 style="margin:0;font-size:22px">思い出アルバム</h2>
+    <p id="albCount" style="margin:0;font-size:13px"></p>
+    <div id="albList"></div>
+    <button class="btn sub" id="albBack">もどる</button>
+  </div>
+  <div class="screen" id="sAll">
+    <h2 id="allTitle" style="margin:0;font-size:24px">🎉 全員集合エンド 🎉</h2>
+    <p id="allText" style="max-width:320px;line-height:1.9;font-size:15px"></p>
+    <button class="btn sub" id="allBack">もどる</button>
+  </div>
   <div class="screen" id="sEnd">
     <div id="endTitle"></div>
     <p id="endText"></p>
@@ -270,9 +286,30 @@ var seen={}; try{seen=JSON.parse(localStorage.getItem("bonGalgeEnds")||"{}")}cat
 
 function saveSeen(k){seen[k]=1;try{localStorage.setItem("bonGalgeEnds",JSON.stringify(seen))}catch(e){}}
 function countSeen(){return Object.keys(seen).length}
-function showCount(){var t="みつけたエンディング "+countSeen()+" / "+(CHARS.length*5);$("endCount").textContent=t;$("endCount2").textContent=t}
+function showCount(){var ba=document.getElementById("btnAll");if(ba)ba.style.display=allClear()?"":"none";var t="みつけたエンディング "+countSeen()+" / "+(CHARS.length*5);$("endCount").textContent=t;$("endCount2").textContent=t}
 
 
+var ALB=[]; try{ALB=JSON.parse(localStorage.getItem("bonKoiAlbum")||"[]")}catch(e){}
+function albAdd(id,label,text){
+  for(var i=0;i<ALB.length;i++)if(ALB[i].c===id&&ALB[i].l===label)return;
+  ALB.push({c:id,l:label,t:text}); if(ALB.length>300)ALB.shift();
+  try{localStorage.setItem("bonKoiAlbum",JSON.stringify(ALB))}catch(e){}
+}
+function allClear(){for(var i=0;i<CHARS.length;i++){var c=CHARS[i];if(!(seen[c.id+"_love"]||seen[c.id+"_special"]))return false}return true}
+function buildAlbum(){
+  var box=$("albList"); box.innerHTML=""; $("albCount").textContent="集めた名場面 "+ALB.length+" 個";
+  CHARS.forEach(function(c){
+    var mine=ALB.filter(function(a){return a.c===c.id});
+    var d=document.createElement("div"); d.className="alc";
+    var h=document.createElement("b"); h.textContent=c.name+"  ("+mine.length+")"; d.appendChild(h);
+    if(!mine.length){var e=document.createElement("i");e.textContent="まだ思い出がないよ";d.appendChild(e)}
+    mine.slice(-8).forEach(function(a){var e=document.createElement("i");e.textContent="💗「"+a.l.replace(/「/g,"『").replace(/」/g,"』")+"」→ "+a.t;d.appendChild(e)});
+    box.appendChild(d);
+  });
+}
+var ALLTXT="島の広場に、七人のボンが勢ぞろいした。\n\nおこボンは腕を組み、にこボンは両手をぶんぶん振り、ひょえボンはそっと袖をつかむ。もぐボンはおにぎりを配り、ねむボンはあくびをして、てれボンは小さく手を振り、にじボンは胸を張って叫んだ。\n\n「よく聞けい！ 本日は、{p}の物語の大団円である！ わっはっは！」\n\nみんなの声が、青空にひびいた。\n七人そろって、「{p}、だいすき！」\n\n――ボーン！！ 七つの影が、ひとつに重なった。";
+function showAll(){ $("allText").innerHTML=ALLTXT.replace(/\{p\}/g,esc(P)).replace(/\n/g,"<br>"); hideScreens(); $("sAll").classList.add("show") }
+function esc(s){return String(s).replace(/[&<>]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;"}[c]})}
 /* ---------- BGM / 効果音 (ぜんぶ内蔵・合成音) ---------- */
 var TRACKS={
   neutral:{bpm:100,wave:"triangle",root:60,mel:[0,4,7,12,9,7,4,7,5,9,12,9,7,4,2,0],bass:[0,0,5,5,7,7,0,0],v:1},
@@ -405,6 +442,7 @@ function step(){
     say(n.who,tx)}
   else if(n.t==="choice"){ showChoices(n) }
   else if(n.t==="end"){ ending(n.key) }
+  else if(n.t==="mini"){ showMini(n) }
   else step();
 }
 
@@ -419,6 +457,8 @@ function showChoices(n){
       box.classList.remove("show"); busy=false; sfx(o.pts>=2?"great":(o.pts===1?"good":(o.pts===0?"meh":"bad")));
       pts+=o.pts; day++; hearts(); if(o.pts>0){var pp=document.createElement("div");pp.className="pop";pp.textContent="♡+"+o.pts;$("app").appendChild(pp);setTimeout(function(){pp.remove()},1200)}
       if(o.flag)F[o.flag]=1;
+      if(o.pts>=2){var fs=null;for(var qi=0;qi<o.res.length;qi++){if(o.res[qi].t==="say"&&o.res[qi].who&&o.res[qi].who!=="p"){fs=o.res[qi];break}}
+        if(fs)albAdd(CUR.id,sub(o.label),sub(fs.text))}
       strikes+=o.pts<0?2:(o.pts===0?1:0);
       toast(o.pts>=2?"♡♡ UP!!":(o.pts===1?"♡ UP!":(o.pts<0?"💢 DOWN…":"…")));
       var add=[{t:"say",who:"p",text:"「"+o.label.replace(/「/g,"『").replace(/」/g,"』")+"」"}].concat(o.res);
@@ -448,6 +488,7 @@ function ending(key){
   bgmStop(); sfx(k); setTimeout(function(){if(!$("sEnd").classList.contains("show"))return;bgmSet("neutral")},3200);
   $("win").classList.remove("show"); $("sprite").classList.remove("show");
   $("endTitle").textContent=e.title; $("endText").innerHTML=sub(e.text).replace(/\n/g,"<br>");
+  if((k==="love"||k==="special")&&allClear()&&!lsGet("bonKoiAll")){lsSet("bonKoiAll","1");$("endText").innerHTML+="<br><br>🎉 全員攻略おめでとう！ タイトルに「全員集合」ボタンが出たよ！"}
   $("sEnd").classList.add("show");
 }
 
@@ -1320,6 +1361,98 @@ function eventBlock(c,k){
   return [N(e[1],{bg:e[0],sprite:true}),S(e[2],{fx:null}),C.apply(null,opts)];
 }
 
+/* ---------- ライバルイベント ---------- */
+var RIV={
+red:{by:"にこボン",bg:"clear",intro:"校門の前。にこボンが、勢いよく{p}の腕に抱きついてきた。",r:"{p}ー！ きょうはわたしと遊ぼっ！ ポテト奢っちゃうよ！",c:"ちょっと！ ……なにベタベタしてんのよ。アタシが先に約束してたでしょ！",
+ o:[["「おこボンと先約があるんだ」",2,"……っ！ ふ、ふん。覚えてたなら、早く言いなさいよ。","(おこボンの耳が、ほんのり赤い)"],["「みんなで遊ぼう」",1,"……しょうがないわね。今日だけよ。","アタシだって、分けてあげるくらいできるんだから。"],["「にこボンと行こうかな」",0,"……どうぞご勝手に！ 知らないからっ！","(ぷいっと背を向けた肩が、小さく震えていた)"]]},
+yellow:{by:"おこボン",bg:"sunset",intro:"夕方の広場。おこボンが、腕を組んでじっとこちらを睨んでいる。",r:"……あんた、最近にこボンと仲いいじゃない。べ、別に気にしてないけど。",c:"えっ、えっ！ おこボン、やきもち〜？ そっか、じゃあ三人でポテト食べよっ！",
+ o:[["「おこボンも大事な友だちだよ」",2,"……っ！ ふんっ。……ありがと。","わたしたち、三人でひとつのポテトだねっ！"],["「ちょっと、ケンカしないで」",1,"ケンカじゃないよ！ ちょっとじゃれてるだけ〜。","……まあ、そうとも言うわね。"],["「どっちも勝手にして」",0,"えーっ！ そんなぁ……ボン!?","……しょボン……。"]]},
+blue:{by:"もぐボン",bg:"clear",intro:"道の途中。もぐボンが、おにぎりを抱えて{p}の前に立ちふさがった。",r:"{p}〜、うちと一緒に、おにぎり食べよ〜。ひょえボンは、あとで〜。",c:"あわわ……もぐボン、大きい……。ボン、{p}と、約束してたのに……。",
+ o:[["「ひょえボンが先約だよ」",2,"……ほんと？ ボン、うれしい……！","ありがとう……。ボン、もうこわくない。"],["「三人で食べよう」",1,"……三人……？ ……それなら、こわくない……かな。","おにぎり、分けるの……？ ボン、がんばる。"],["「もぐボンと行ってくるね」",0,"……あ。……そう、なんだ……。","ひょえ……。ボン、ひとりでもだいじょうぶ……。しょボン……。"]]},
+green:{by:"ひょえボン",bg:"sunset",intro:"畑の帰り道。ひょえボンが、{p}の袖をぎゅっとつかんでいる。",r:"……あ、あの。ボン、{p}と、お話ししたくて……。もぐボンじゃ、だめ……？",c:"あれ〜、ひょえボンも一緒に来る〜？ にぎやかで、うれしいなあ〜。",
+ o:[["「ひょえボンも一緒に来なよ」",2,"わあ〜、やったね〜！ みんなでお野菜、収穫しよ〜！","うち、うれしくて、おなかすいちゃった〜。ボーン！"],["「今日はもぐボンと」",1,"うん〜、ごめんね〜、ひょえボン。あしたは一緒にね〜。","うち、ちゃんと約束、覚えてるからね〜。"],["「ひょえボンと行くよ」",0,"そっか〜……。うち、ひとりで畑にもどるね〜。","……しょボン〜。"]]},
+purple:{by:"にじボン",bg:"clear",intro:"昼下がり。にじボンが、虹色のペロペロキャンディを片手に仁王立ちしている。",r:"よく聞けい、{p}！ 我輩と文学談義を交わす時間であるぞ！ ねむボンなど放っておけ！",c:"……ふあ……。にじボン……声、おおきい……。……いま、ぼくとお昼寝の、時間……。",
+ o:[["「ねむボンとお昼寝するよ」",2,"……ありがと。……ぼく、うれしい……。","……おやすみ……。"],["「にじボンも一緒に昼寝しよう」",1,"……むう。我輩が眠るなど……いや、悪くないのである。","……ふふ。……いいね……。"],["「にじボンの話を聞く」",0,"……そっか……。……いってらっしゃい……。","(ぱたり、と膝に顔を伏せてしまった)"]]},
+pink:{by:"ねむボン",bg:"night",intro:"夜の書斎。ねむボンが、{p}の肩にもたれて寝息を立てている。",r:"……すぅ……。……{p}の肩、ちょうどいい……。……ぐー……。",c:"あ、あの……ね、ねむボンさん、そこは……その……。……わ、私も、そこに……。",
+ o:[["「てれボンも隣においで」",2,"えっ、えっ……！ あ、ありがとうございます……！","(顔を真っ赤にして、そっと隣に座った)"],["「そっとしておこう」",1,"……は、はい。……ねむボンさんの寝顔、かわいいです……。","(小さく微笑んだ)"],["「てれボン、おやすみ」",0,"……えっ。……あ、はい……。","(うつむいて、ページをめくる手が止まった)"]]},
+rainbow:{by:"てれボン",bg:"clear",intro:"書庫の前。てれボンが、頬を染めながら詩集を差し出してきた。",r:"あ、あの……{p}さん。この詩、感想を、聞かせてもらえますか……？",c:"ほう、なかなか良い詩であるな。……だが、我輩の前で堂々と手渡すとは、実に大胆である。",
+ o:[["「にじボンの原稿も見たいな」",2,"うむ！ よく言った、{p}！ 我輩の最新作を、特別に見せてやろう！","わっはっは！ ……てれボン、お主もあとで感想を聞かせるのである！"],["「ふたりの詩を読み比べよう」",1,"ほう……読み比べとは、風流である。","うむ。……悪くないのだぞ。"],["「てれボンの詩だけ読む」",0,"……そうか。……我輩の原稿は、そっと引き出しに戻しておこう。","……しょボン。"]]}
+};
+function rivalBlock(c){
+  var r=RIV[c.id], opts=r.o.map(function(o){
+    var rs=[S(o[2],{fx:o[1]>=2?"happy":(o[1]===0?"droop":"")})]; if(o[3])rs.push(o[3].charAt(0)==="("?N(o[3]):S(o[3]));
+    return O(o[0],o[1],rs)});
+  return [N(r.intro,{bg:r.bg,sprite:true}),S(r.r,{who:r.by}),S(r.c,{fx:null}),C.apply(null,opts)];
+}
+/* ---------- ホワイトデー的な贈り物 ---------- */
+var GIFT={
+red:["おこボンが「べ、別に期待してないけど」と、そっぽを向いている。何か渡そう。",[["激辛せんべいの詰め合わせ",2,"……っ！ ちゃんと分かってるじゃない。……ありがと。","(袋を抱えて、ぷいっと向こうを向いた。口元は、ゆるんでいた)"],["手作りのクッキー",1,"……ま、まあ、食べてあげてもいいけど。","……甘いのも、悪くないわね。"],["ティッシュ",0,"……ボン!? ティッシュ……？ あんた、アタシをバカにしてるの！？","(ぷんぷん怒りながら、受け取ってはくれた)"]]],
+yellow:["にこボンが目を輝かせて「お返し〜！」と手を差し出してきた。",[["揚げたてのポテト",2,"わーい！ ボーン！ これこれ、これだよ{p}！","ポテトは世界を救うんだよっ！ わたし、一生の宝物にする！"],["歌のCD",1,"わあ、ありがとう！ 家でダンスしながら聴くね！","……あっ、プレイヤーない！ 後で借りよっと！"],["観葉植物",0,"えっ、お花？ ……えーと、水やり、がんばるね！","……しょボン。育てるの、苦手なんだ……。"]]],
+blue:["ひょえボンが、もじもじしながら「お返し……ある？」と聞いてきた。",[["ふわふわのぬいぐるみ",2,"……わあ。ふわふわ……。ボン、一生大事にする……！","(ぬいぐるみを抱きしめて、ぽろぽろ泣いた)"],["おにぎり",1,"……おにぎり。ボンの好きなやつ……ありがと。","のりの目、ちょっとこわいけど……食べる。"],["爆竹セット",0,"ひょえええええ！！ ばくちく！？ ボン!?","……ボン、気絶する……ぱたり……。"]]],
+green:["もぐボンが、期待に満ちた顔で「お返し〜？」とのぞき込んできた。",[["山盛りのおにぎり弁当",2,"ボーン！ やった〜！ 世界一の贈り物だよ〜！","うち、{p}の分も、ちゃんと残して……残して……あ〜ん。"],["果物のかごもり",1,"わあ〜、つやつや〜。おいしそ〜。","えへへ〜、ありがとう〜。"],["ダイエット本",0,"ええ〜！？ うち、そんなにぽっちゃりかな〜……。","……しょボン〜。"]]],
+purple:["ねむボンが、まぶたを半分閉じたまま「……お返し……？」と呟いた。",[["ふかふか枕",2,"……！ ……これ……最高……。……もう、離れない……。","(受け取ったまま、その場で寝息をたて始めた)"],["ホットミルク",1,"……あったかい。……ありがと……。","……ふわぁ……幸せ……。"],["目覚まし時計",0,"……ボン!? ……それ……いちばん、いらない……。","……しょボン……。"]]],
+pink:["てれボンが、胸の前で手を組んで、もじもじしている。",[["万年筆と原稿用紙",2,"あ……あの……！ ありがとうございます……！ 一生、使います……。","(両手でぎゅっと胸に抱きしめた)"],["オムライス弁当",1,"あ、ありがとうございます……。……おいしそう……。","(小さな声で「いただきます」と言った)"],["派手なアクセサリー",0,"ひゃっ……わ、私には、まぶしすぎます……。","……ご、ごめんなさい……。"]]],
+rainbow:["にじボンが、腕を組んで「我輩への贈り物は？」と胸を張っている。",[["虹色のペロペロキャンディ",2,"うむ！ よく分かっておる！ 我輩の好物をしかと把握しておるとは！","わっはっは！ 褒美に、今夜の物語の主役にしてやろう！"],["古書の詩集",1,"ほう……趣味が良いな。大切に読ませてもらうぞ。","うむ、お主の気持ち、しかと受け取った。"],["万馬券の予想紙",0,"……ボン!? ……我輩は、そういう、俗な者ではないのだぞ！","……いや、少しだけ、気になる、が……。しょボン。"]]]
+};
+function giftBlock(c){
+  var g=GIFT[c.id], opts=g[1].map(function(o){
+    var rs=[S(o[2],{fx:o[1]>=2?"happy":(o[1]===0?"droop":"")})]; if(o[3])rs.push(o[3].charAt(0)==="("?N(o[3]):S(o[3]));
+    return O(o[0],o[1],rs)});
+  return [N(g[0],{bg:"sunset",sprite:true}),S("……お返し、もらえるのかな。",{fx:null}),C.apply(null,opts)];
+}
+/* ---------- 季節イベント(今の月で変わる) ---------- */
+var SEA={
+ spring:{bg:"clear",intro:"春。島の桜がいっせいに咲いた。{p}と{who}は、花びらの舞う道を歩いている。",opts:[["桜の下にシートを広げる",2],["花びらを髪にのせてあげる",2],["くしゃみ連発して花粉に負ける",0]],
+  who:{red:"……き、きれいね。べ、別に、あんたと来たからじゃないけど。",yellow:"わあっ、桜ふぶき！ ポテト持ってきてよかった〜！",blue:"桜、ふわふわ……こわくない……。花びら、きれい……。",green:"おべんと広げよ〜！ 桜の下で食べると、三倍おいしいんだよ〜。",purple:"……桜の下、ふかふか……。……ねむい……。……おやすみ……。",pink:"あ、あの……この景色、詩にしたい……。……い、一緒に、見てくれますか……？",rainbow:"うむ！ 桜とは、散りゆくがゆえに美しい。……我輩の人生訓である！"}},
+ summer:{bg:"night",intro:"夏。夜空に、花火大会の音が響いている。{who}が、{p}の袖を引いた。",opts:[["いっしょに花火を見上げる",2],["かき氷を買ってくる",1],["人混みで迷子になる",0]],
+  who:{red:"……ほら、始まったわよ。……一番いい場所、アタシがとっておいたんだから。",yellow:"どーん！ ぱーん！ すごーい！ 夏はやっぱり最高だね〜！",blue:"ひょえっ……大きい音……。……でも、{p}がいるから、こわくない……。",green:"お腹に響く〜。焼きとうもろこしも、買ってこよ〜！",purple:"……きれい……。……でも、ねむい……。……花火の音、子守唄みたい……。",pink:"あの……花火って、一瞬だから、きれいなんですよね……。……今のこの時間も、そう……。",rainbow:"見よ！ 夜空に咲く、一夜限りの芸術である！ ……うむ！"}},
+ autumn:{bg:"sunset",intro:"秋。紅葉で、島じゅうが赤く染まっている。{who}は、落ち葉を拾い集めていた。",opts:[["いっしょに落ち葉の山に飛びこむ",2],["焼き芋を買ってくる",2],["落ち葉に足をとられて転ぶ",0]],
+  who:{red:"ほら、早くしなさい！ アタシより高く飛べたら、褒めてあげる。",yellow:"それーっ！ ふかふか〜！ 秋はたのしいことだらけだね〜！",blue:"落ち葉……さくさくいう……。……ボン、この音、すき……。",green:"焼き芋〜！ 秋はこれだよ〜。半分こしよ〜、ボーン！",purple:"……落ち葉のベッド……ふかふか……。……ここで寝たい……。",pink:"……紅葉って、赤い手紙みたい。……あ、いえ、なんでも……。",rainbow:"秋とは、読書の季節である！ ……と思ったが、焼き芋もまた格別であるな。"}},
+ winter:{bg:"night",intro:"冬。島に、はじめての雪がふってきた。{who}が、白い息を吐いている。",opts:[["手をつないで温める",2],["マフラーを半分わける",2],["雪玉を投げつける",0]],
+  who:{red:"……寒いわね。……べ、別に、あんたの手が温かそうだなんて、思ってないわよ。",yellow:"雪だ〜！ 雪だるま作ろっ！ ぴっかぴかの名作にするよ！",blue:"……さむい……。……でも、{p}の手は、あったかい……。",green:"熱々のお鍋が食べたいな〜。雪を見てるとおなかすくよね〜。",purple:"……こたつ……。……こたつに、帰りたい……。……一緒に、入る……？",pink:"……雪って、静かですね。……この静けさ、すき、です……。",rainbow:"うむ！ 雪とは、天から降る白紙の原稿用紙である！ ……名言であろう？"}}
+};
+function seasonKey(){var m=new Date().getMonth()+1; return m>=3&&m<=5?"spring":(m>=6&&m<=8?"summer":(m>=9&&m<=11?"autumn":"winter"))}
+function seasonBlock(c){
+  var s=SEA[seasonKey()], opts=s.opts.map(function(o,i){
+    var rs=o[1]>=2?[S(s.who[c.id],{fx:"happy"})]:(o[1]===1?[N("ふたりの顔に、ふんわり笑みが広がった。"),S("……ありがと。",{fx:"happy"})]:[N("……なんだか、気まずい空気が流れた。"),S("……はあ。",{fx:"droop"})]);
+    return O(o[0],o[1],rs)});
+  return [N(s.intro.replace("{who}",c.name),{bg:s.bg,sprite:true}),S(s.who[c.id],{fx:null}),C.apply(null,opts)];
+}
+/* ---------- ミニゲーム(タイミング) ---------- */
+var MINI={
+red:["🌶 激辛チャレンジ","辛さメーターが赤いゾーンに入った瞬間に「ここ！」を押して、一口食べよう！","いまっ！",["ぜんぶ辛すぎて、涙目になった……！","なんとか半分は食べきれた。","ほとんど完食！ 汗だくだ！","完食！ 激辛マスターの誕生だ！"],["……こ、これくらい、アタシは平気だし！ ……みず……。","……ふんっ、ちょっとは認めてあげる。","やるじゃない！ ちょっとだけ見直したわ。","……っ！ さ、最高じゃないの！ アタシに並ぶなんて！"]],
+yellow:["💃 ダンスレッスン","リズムが光ったタイミングで「ここ！」を押して、ステップを決めよう！","ステップ！",["足がもつれて、ふたりでごろん！","ところどころ合った。","いい感じ！ ほぼ完璧！","ぴったり息が合って、大成功！"],["ごろん〜！ あはは、笑っちゃった〜。","もう一回やろっ！ 次はいけるよ！","すごいすごい！ わたしたち、ダンスユニットになれそう！","完璧〜！！ ボーン！ 最高のペアだよ！"]],
+blue:["🧸 ぬいぐるみキャッチ","ふわふわ流れてくるぬいぐるみを、ちょうどいいところで「ここ！」と受け止めよう！","とって！",["ぬいぐるみが、ぜんぶ床に落ちてしまった……。","ひとつだけキャッチできた。","ほとんどキャッチ！","ぜんぶキャッチ！ ふわふわの山ができた！"],["ひょえ……ごめんね、ぬいぐるみさん……。","……ひとつだけ。……でも、うれしい……。","すごい……。ボン、{p}みたいになりたい……。","わあ……。ぬいぐるみ、いっぱい……！ ボン、うれしい……！"]],
+green:["🥕 野菜収穫タイム","ちょうど実った野菜を「ここ！」で収穫しよう！ 早すぎても遅すぎてもダメ！","ぬく！",["ぜんぶ早抜きしちゃって、小さな野菜ばかり……。","ちょっとだけ収穫できた。","かごがいっぱい！","特大野菜がごろごろ！ 大豊作！"],["あらら〜、まだ早かったね〜。次はがんばろ〜。","まあまあだね〜。でも、うれしいよ〜。","わあ〜、たくさん〜！ 今夜はごちそうだね〜！","ボーン！ すごい〜！ 畑の神さまだよ〜！"]],
+purple:["🐑 ひつじ数えゲーム","ひつじがフェンスを跳ぶ瞬間に「ここ！」と数えよう。眠りを妨げないように……。","ひとつ！",["数えるのを間違えて、ねむボンが起きてしまった……。","ちょっとだけ寝息が聞こえてきた。","すやすや……いい感じ！","ねむボンが完全にぐっすり！ 安眠大成功！"],["……ひつじ……もう、わからない……。……おやすみ……。","……ふぁ……ちょっと、眠くなってきた……。","……すぅ……。……いい夢、みれそう……。","……ぐー……。……{p}、ありがと……。……ぐー……。"]],
+pink:["📝 詩づくり","言葉がぴったり当てはまるタイミングで「ここ！」を押して、詩を完成させよう！","これ！",["言葉がバラバラで、詩になりきらなかった……。","ひと節だけ、きれいにまとまった。","ほとんど完成した！","ひとつの詩が、見事に完成した！"],["あ、あの……ごめんなさい。……なんだか、うまく、いかなくて……。","……ひと節だけ、できました。……えへへ。","すごいです……。ほとんど、詩になってます……！","か、完成……！ これ、ふたりの詩、ですね……。"]],
+rainbow:["📖 名言づくり","言葉が輝く瞬間に「ここ！」を押して、名言を完成させよう！","一筆！",["支離滅裂な文章になってしまった……。","ひとつだけ、まともな一文になった。","ほぼ完成！ 見事な名言の予感！","格調高い名言が完成した！ 歴史に残る一文である！"],["むう……。名言とは難しいものよ……。","うむ、悪くない。よい出だしである。","うむ！ 見事な筆致であるぞ！","じゃじゃーん！ 後世に語り継がれる名言の誕生である！ わっはっは！"]]
+};
+function miniNode(id){return {t:"mini",id:id}}
+function showMini(n){
+  var m=MINI[n.id], c=CUR; busy=true; $("win").classList.remove("show");
+  var el=document.createElement("div"); el.className="screen show"; el.id="miniScr";
+  el.innerHTML='<h2 style="margin:0;font-size:22px"></h2><p style="margin:0;max-width:300px;font-size:14px;line-height:1.7"></p><div id="mTrack" style="position:relative;width:min(300px,86%);height:34px;border-radius:17px;background:#fff;border:3px solid #ff8fb8;overflow:hidden"><div id="mZone" style="position:absolute;top:0;bottom:0;background:#7be08a;opacity:.85"></div><div id="mPtr" style="position:absolute;top:0;bottom:0;width:8px;background:#ff3d6e;border-radius:4px"></div></div><div id="mInfo" style="font-size:14px;min-height:20px"></div><button class="btn" id="mHit" style="font-size:18px;padding:12px 28px"></button>';
+  el.querySelector("h2").textContent=m[0]; el.querySelector("p").textContent=m[1]; el.querySelector("#mHit").textContent=m[2];
+  $("app").appendChild(el);
+  var round=0,hits=0,pos=0,dir=1,sp=.011,zc=.5,zw=.24,raf=0,locked=false;
+  function newZone(){zc=.2+Math.random()*.6; var z=el.querySelector("#mZone"); z.style.left=((zc-zw/2)*100)+"%"; z.style.width=(zw*100)+"%"}
+  function tick(){pos+=dir*sp; if(pos>=1){pos=1;dir=-1}else if(pos<=0){pos=0;dir=1} el.querySelector("#mPtr").style.left=(pos*92)+"%"; raf=requestAnimationFrame(tick)}
+  newZone(); tick(); el.querySelector("#mInfo").textContent="1 / 3  ヒット 0";
+  el.querySelector("#mHit").onclick=function(){
+    if(locked)return; beep(660,.05);
+    var ok=Math.abs(pos*0.92+0.04-zc)<zw/2+0.015; if(ok){hits++;sfx("good")}else sfx("meh");
+    round++; sp+=.004; el.querySelector("#mInfo").textContent=(ok?"✨ ナイス！ ":"💦 ざんねん ")+Math.min(round+1,3)+" / 3  ヒット "+hits;
+    if(round>=3){locked=true; cancelAnimationFrame(raf); setTimeout(finish,500)} else newZone();
+  };
+  function finish(){
+    el.remove(); var gain=hits; pts+=gain; hearts();
+    if(gain>0){var pp=document.createElement("div");pp.className="pop";pp.textContent="♡+"+gain;$("app").appendChild(pp);setTimeout(function(){pp.remove()},1200)}
+    var add=[N(m[3][hits],{sprite:true}),S(m[4][hits].replace(/\{p\}/g,P),{fx:hits>=2?"happy":(hits===0?"droop":null)})];
+    queue=add.concat(queue); busy=false; step();
+  }
+}
+
 
 /* ---------- キャラ定義 ---------- */
 var CHARS=[
@@ -1401,13 +1534,14 @@ function addDate(q,c){
   return q;
 }
 function addEvents(q,c){
-  /* 日付デートの前に、ミニイベントを3つ(場面のはじまりに)差し込む */
   if(!EVT[c.id])return q;
   var idx=[];q.forEach(function(n,i){if(n.t==="choice")idx.push(i)});
   if(idx.length<6)return q;
-  var ps=[2,3,5].map(function(d){return sceneStart(q,idx[Math.min(idx.length-1,Math.floor(idx.length*d/8))])});
-  var used=[];
-  for(var k=2;k>=0;k--){ if(used.indexOf(ps[k])>=0)continue; used.push(ps[k]); Array.prototype.splice.apply(q,[ps[k],0].concat(eventBlock(c,k))) }
+  var L=idx.length, jobs=[[1,function(){return seasonBlock(c)}],[2,function(){return eventBlock(c,0)}],[3,function(){return eventBlock(c,1)}],[5,function(){return eventBlock(c,2)}],[9/2,function(){return rivalBlock(c)}],[11/2,function(){return [N("おやすみの日。{p}は、{名}と遊ぶ約束をしていた。".replace("{名}",c.name),{bg:"clear",sprite:true}),miniNode(c.id)]}],[13/2,function(){return giftBlock(c)}]];
+  var pl=jobs.map(function(j){return {p:sceneStart(q,idx[Math.min(L-1,Math.floor(L*j[0]/8))]),f:j[1]}});
+  var seen2={};pl=pl.filter(function(x){if(seen2[x.p])return false;seen2[x.p]=1;return true});
+  pl.sort(function(a,b){return b.p-a.p});
+  pl.forEach(function(x){Array.prototype.splice.apply(q,[x.p,0].concat(x.f()))});
   return q;
 }
 function decorate(q,c){
@@ -1466,7 +1600,7 @@ function setGender(g){
   for(var i=0;i<bs.length;i++)bs[i].onclick=function(){setGender(this.getAttribute("data-g"));beep(700,.06)};})();
 
 function start(){
-  pts=0; day=1; hearts();
+  pts=0; day=1; var rep=(seen[CUR.id+"_love"]||seen[CUR.id+"_special"])?2:0; pts=rep; hearts(); if(rep)setTimeout(function(){toast("2周目ボーナス ♡+2")},400);
   $("sEnd").classList.remove("show");
   setPose(0);
   F={}; strikes=0; day=1; LOG=[]; queue=addDate(decorate(CUR.script(),CUR),CUR); hearts(); busy=false;
@@ -1670,6 +1804,10 @@ $("btnTok").onclick=function(){beep(700,.06);buildTok();hideScreens();$("sTok").
 $("tokBack").onclick=function(){beep(600,.05);$("sTok").classList.remove("show");$("sTitle").classList.add("show");tokBadge()};
 tokBadge();
 $("btnGal").onclick=function(){beep(660,.06);buildGallery();hideScreens();$("sGallery").classList.add("show")};
+$("btnAlb").onclick=function(){beep(660,.06);buildAlbum();hideScreens();$("sAlbum").classList.add("show")};
+$("albBack").onclick=function(){$("sAlbum").classList.remove("show");$("sTitle").classList.add("show")};
+$("btnAll").onclick=function(){beep(660,.06);showAll()};
+$("allBack").onclick=function(){$("sAll").classList.remove("show");$("sTitle").classList.add("show")};
 $("galBack").onclick=function(){$("sGallery").classList.remove("show");$("sTitle").classList.add("show")};
 $("btnSet").onclick=function(){beep(660,.06);showMenu("")};
 $("btnMenu").onclick=function(e){e.stopPropagation();setSkip(false);beep(660,.06);showMenu("")};
